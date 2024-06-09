@@ -1,0 +1,195 @@
+#!meta
+
+{"kernelInfo":{"defaultKernelName":"csharp","items":[{"aliases":[],"name":"csharp"}]}}
+
+#!markdown
+
+# Домашнее задание по Юнит тестам
+Нужно сделать дз от ОТУСА. Там есть условия которые нужно соблюсти:
+![alt text](image.png)
+
+#!markdown
+
+### 1) Использовать именование: ИмяЕдиницыТестирования_Условие_ОжидаемыйРезультат;
+Тут вроде как понятно
+
+#!markdown
+
+### 2) Для Arrange этапа должен использоваться фабричный метод при определении данных;
+Тут имеется в виду что у нас должен быть отдельный метод, который должен создавать объекты в тестах один и тот же.
+Пример:
+
+#!csharp
+
+#r "nuget: xUnit"
+
+#!csharp
+
+// Класс Person, который будет использоваться в тестах
+public class Person
+{
+    public string Name { get; set; }
+    public int Age { get; set; }
+}
+
+// Определение класса TestDataFactory
+public static class TestDataFactory
+{
+    // Фабричный метод для создания объекта Person
+    public static Person CreatePerson(string name, int age)
+    {
+        return new Person
+        {
+            Name = name,
+            Age = age
+        };
+    }
+}
+
+#!csharp
+
+using Xunit;
+// Тестовый класс с использованием xUnit
+public class PersonTests
+{
+    [Fact]
+    public void Person_ShouldHaveCorrectNameAndAge()
+    {
+        // Arrange: использование фабричного метода для создания объекта Person
+        var person = TestDataFactory.CreatePerson("John Doe", 30);
+
+        // Act: действия над объектом (если необходимо)
+        // В данном случае не требуется дополнительных действий
+
+        // Assert: проверка, что объект имеет правильные свойства
+        Assert.Equal("John Doe", person.Name);
+        Assert.Equal(30, person.Age);
+    }
+
+    [Fact]
+    public void Person_ShouldBeAdult()
+    {
+        // Arrange: использование фабричного метода для создания объекта Person
+        var person = TestDataFactory.CreatePerson("Jane Doe", 25);
+
+        // Act: проверка условия
+        bool isAdult = person.Age >= 18;
+
+        // Assert: проверка условия
+        Assert.True(isAdult);
+    }
+}
+
+#!markdown
+
+### 3) Для Stub и Mock использовать Moq;
+![alt text](image-1.png)
+
+Для создания моков и стабов использутся одни и те же пакет. Moq.
+
+#!csharp
+
+#r "nuget: Moq"
+
+#!markdown
+
+По факту это одно и то же, с тем исключением что стабы не нужно как-то настраивать и тонко проверять. 
+Просто эта иммитация метода должна всегда иметь одно и тоже поведение.
+
+#!markdown
+
+Мы можем мокировать те объекты, которые изначально имеют интерфейс. Пример с калькулятором
+
+#!csharp
+
+// Интерфейс ICalculator
+public interface ICalculator
+{
+    int Add(int a, int b);
+}
+
+// Класс MathService, который использует ICalculator
+public class MathService
+{
+    private readonly ICalculator _calculator;
+
+    public MathService(ICalculator calculator)
+    {
+        _calculator = calculator;
+    }
+
+    public int CalculateSum(int a, int b)
+    {
+        return _calculator.Add(a, b);
+    }
+}
+
+#!markdown
+
+#### Пример со СТАБОМ
+На 10 строке создаеться объект через мок и интерфейс.
+На 11 настраивается поведение отдельных методов. по сути это реализация какого-то контракта в моке.
+на 13 через Object передается объект через агрегацию
+
+#!csharp
+
+using Moq;
+using Xunit;
+
+public class MathServiceTests
+{
+    [Fact]
+    public void CalculateSum_ShouldReturnCorrectSum()
+    {
+        // Arrange: создание Mock объекта для ICalculator
+        var calculatorMock = new Mock<ICalculator>();
+        calculatorMock.Setup(c => c.Add(It.IsAny<int>(), It.IsAny<int>())).Returns((int a, int b) => a + b);
+
+        var mathService = new MathService(calculatorMock.Object);
+
+        // Act: вызов тестируемого метода
+        var result = mathService.CalculateSum(3, 4);
+
+        // Assert: проверка результата
+        Assert.Equal(7, result);
+    }
+}
+
+#!markdown
+
+Тут на 11 строке настраиваеться метод Add, и указывается что при любых раскладах необходимо возвращать сумму.
+На самом деле какой-то кривой пример, так-как хотелось бы с использованием в Returns норм цифр.
+
+#!markdown
+
+#### Пример с МОКОМ
+Тут пример такой же как со стабом, только иммитация будут использовать по большим критериям. Т.е. наделить большим поведением и возможностью проверок.
+Например моки, предполагают:
+1) Отрабатывать определенным образом только при передачи определенных параметров
+2) Проверка на количество раз вызываний
+
+#!csharp
+
+public class MathServiceTests
+{
+    [Fact]
+    public void CalculateSum_ShouldCallAddMethodWithCorrectParameters()
+    {
+        // Arrange: создание Mock объекта для ICalculator
+        var calculatorMock = new Mock<ICalculator>();
+        
+        //можно тут настроить ещё
+        //calculatorMock.Setup(c => c.Add(3, 4)).Returns(7);
+
+        var mathService = new MathService(calculatorMock.Object);
+
+        // Act: вызов тестируемого метода
+        var result = mathService.CalculateSum(3, 4);
+
+        // Assert: проверка вызова метода Add с правильными параметрами
+        calculatorMock.Verify(c => c.Add(3, 4), Times.Once);
+
+        // Проверка результата
+        Assert.Equal(7, result);
+    }
+}
