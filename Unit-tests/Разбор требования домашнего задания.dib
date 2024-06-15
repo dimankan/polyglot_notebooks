@@ -17,7 +17,13 @@
 
 ### 2) Для Arrange этапа должен использоваться фабричный метод при определении данных;
 Тут имеется в виду что у нас должен быть отдельный метод, который должен создавать объекты в тестах один и тот же.
-Пример:
+
+Также в презентации от отуса был слайд, в котором описан некий Fixture. 
+Я так понял что это и есть та самая фабрика, которая инкапсулирует логику Arrange
+![alt text](image-4.png)
+
+
+Пример без Fixture:
 
 #!csharp
 
@@ -86,6 +92,8 @@ public class PersonTests
 ![alt text](image-1.png)
 
 Для создания моков и стабов использутся одни и те же пакет. Moq.
+
+![alt text](image-2.png)
 
 #!csharp
 
@@ -193,3 +201,32 @@ public class MathServiceTests
         Assert.Equal(7, result);
     }
 }
+
+#!markdown
+
+### 4) Для создания тестируемого класса, например, PartnersController можно использовать AutoFixture (https://habr.com/ru/post/262435/), чтобы избежать ошибок компиляции при добавлении новых зависимостей в конструктор или также использовать фабричный метод;
+
+#!markdown
+
+![alt text](image-3.png)
+43-49
+
+#!markdown
+
+Это история про то, что есть возможность генерировать данные для каких-то объектов c фейковыми данными.
+
+Пример
+
+#!csharp
+
+#r "nuget: AutoFixture"
+
+#!markdown
+
+    public record Person
+    {
+        public string Name { get; set; }
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
+    }
+    
